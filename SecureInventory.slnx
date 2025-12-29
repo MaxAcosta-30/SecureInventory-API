@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SecureInventory.Api/SecureInventory.Api.csproj" />
+    <Project Path="src/SecureInventory.Core/SecureInventory.Core.csproj" />
+    <Project Path="src/SecureInventory.Infrastructure/SecureInventory.Infrastructure.csproj" />
+  </Folder>
+</Solution>

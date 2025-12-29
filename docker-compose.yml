@@ -1,0 +1,24 @@
+services:
+  # Base de Datos SQL Server
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: secure_inventory_db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD} # Inyección segura
+    ports:
+      - "${SQL_PORT}:1433"
+    volumes:
+      - sql_data:/var/opt/mssql # Persistencia de datos
+    restart: always
+
+  # Caché Redis
+  cache:
+    image: redis:alpine
+    container_name: secure_inventory_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    restart: always
+
+volumes:
+  sql_data:
