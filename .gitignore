@@ -1,17 +1,6 @@
-## Carpeta de compilación
-[Bb]in/
-[Oo]bj/
-
-## Archivos de usuario y caché de VS Code
+bin/
+obj/
 .vscode/
 .vs/
-*.user
-*.userosscache
-*.sln.docattachments
-
-## Archivos de entorno (Seguridad)
 .env
 appsettings.Development.json
-
-## Docker
-.docker/
