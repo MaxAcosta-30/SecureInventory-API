@@ -5,22 +5,35 @@ using SecureInventory.Core.Interfaces;
 
 namespace SecureInventory.Api.Controllers;
 
+/// <summary>
+/// Controlador responsable de las operaciones CRUD sobre productos del inventario.
+/// Implementa el patrón Cache-Aside con Redis para optimizar las consultas de lectura.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _repository;
 
+    /// <summary>
+    /// Inicializa una nueva instancia del controlador de productos.
+    /// </summary>
+    /// <param name="repository">Repositorio para operaciones de acceso a datos de productos.</param>
     public ProductsController(IProductRepository repository)
     {
         _repository = repository;
     }
 
     /// <summary>
-    /// Gets a product by its unique identifier.
+    /// Obtiene un producto por su identificador único.
+    /// Utiliza el patrón Cache-Aside: primero consulta Redis, si no existe, consulta SQL Server y almacena en caché.
     /// </summary>
-    /// <param name="id">The unique identifier of the product.</param>
-    /// <returns>An action result containing the product if found, otherwise a Not Found response.</returns>
+    /// <param name="id">Identificador único del producto a consultar.</param>
+    /// <returns>
+    /// - 200 OK: Producto encontrado. Retorna el objeto Product con sus datos (Id, Name, Price, Stock).
+    /// - 404 NotFound: El producto con el ID especificado no existe en la base de datos.
+    /// - 500 InternalServerError: Error al consultar la base de datos o el caché Redis.
+    /// </returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -30,10 +43,16 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new product.
+    /// Crea un nuevo producto en el inventario.
+    /// Requiere autenticación JWT válida (atributo [Authorize]).
     /// </summary>
-    /// <param name="product">The product data to create.</param>
-    /// <returns>An action result indicating the outcome of the creation, with the new product's ID.</returns>
+    /// <param name="product">Objeto Product con los datos del producto a crear (Name, Price, Stock). El Id será generado automáticamente.</param>
+    /// <returns>
+    /// - 201 Created: Producto creado exitosamente. Retorna el producto creado con su ID asignado y la ubicación del recurso en el header Location.
+    /// - 400 BadRequest: Los datos del producto son inválidos (por ejemplo, precio o stock negativos).
+    /// - 401 Unauthorized: No se proporcionó un token JWT válido o el token ha expirado.
+    /// - 500 InternalServerError: Error al insertar el producto en la base de datos.
+    /// </returns>
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create(Product product)

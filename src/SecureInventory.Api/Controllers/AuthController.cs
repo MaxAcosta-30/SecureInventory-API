@@ -6,9 +6,12 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 
-
 namespace SecureInventory.Api.Controllers;
 
+/// <summary>
+/// Controlador responsable de la autenticación y autorización de usuarios.
+/// Proporciona endpoints para registro de nuevos usuarios y autenticación mediante JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -16,6 +19,11 @@ public class AuthController : ControllerBase
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
 
+    /// <summary>
+    /// Inicializa una nueva instancia del controlador de autenticación.
+    /// </summary>
+    /// <param name="userRepository">Repositorio para operaciones de acceso a datos de usuarios.</param>
+    /// <param name="configuration">Configuración de la aplicación para obtener claves JWT.</param>
     public AuthController(IUserRepository userRepository, IConfiguration configuration)
     {
         _userRepository = userRepository;
@@ -23,10 +31,15 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Registers a new user with the provided username and password.
+    /// Registra un nuevo usuario en el sistema con el nombre de usuario y contraseña proporcionados.
+    /// La contraseña se hashea utilizando BCrypt antes de almacenarse en la base de datos.
     /// </summary>
-    /// <param name="request">User registration data.</param>
-    /// <returns>An action result indicating the outcome of the registration.</returns>
+    /// <param name="request">Datos de registro del usuario (Username y Password).</param>
+    /// <returns>
+    /// - 200 OK: Usuario registrado exitosamente.
+    /// - 400 BadRequest: El nombre de usuario ya existe en el sistema.
+    /// - 500 InternalServerError: Error en la base de datos o al procesar la solicitud.
+    /// </returns>
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegisterDto request)
     {
@@ -47,10 +60,14 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Authenticates a user and generates a JWT token upon successful login.
+    /// Autentica un usuario existente y genera un token JWT válido por 1 hora si las credenciales son correctas.
     /// </summary>
-    /// <param name="request">User login data.</param>
-    /// <returns>An action result containing the JWT token if login is successful.</returns>
+    /// <param name="request">Datos de inicio de sesión del usuario (Username y Password).</param>
+    /// <returns>
+    /// - 200 OK: Autenticación exitosa. Retorna un objeto JSON con el token JWT: { "token": "..." }.
+    /// - 401 Unauthorized: Las credenciales proporcionadas son inválidas (usuario no existe o contraseña incorrecta).
+    /// - 500 InternalServerError: Error al consultar la base de datos o generar el token.
+    /// </returns>
     [HttpPost("login")]
     public async Task<IActionResult> Login(UserLoginDto request)
     {
@@ -66,10 +83,11 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Generates a JSON Web Token (JWT) for the authenticated user.
+    /// Genera un token JWT (JSON Web Token) para el usuario autenticado.
+    /// El token incluye claims de identificador, nombre de usuario y rol, y expira en 1 hora.
     /// </summary>
-    /// <param name="user">The user for whom to generate the token.</param>
-    /// <returns>A string representing the generated JWT token.</returns>
+    /// <param name="user">Usuario para el cual se generará el token.</param>
+    /// <returns>Cadena que representa el token JWT firmado y codificado.</returns>
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
@@ -96,14 +114,15 @@ public class AuthController : ControllerBase
 }
 
 /// <summary>
-/// Data Transfer Object (DTO) for user registration.
+/// Objeto de transferencia de datos (DTO) para el registro de nuevos usuarios.
 /// </summary>
-/// <param name="Username">The desired username.</param>
-/// <param name="Password">The user's password.</param>
+/// <param name="Username">Nombre de usuario deseado. Debe ser único en el sistema.</param>
+/// <param name="Password">Contraseña del usuario. Será hasheada antes de almacenarse.</param>
 public record UserRegisterDto(string Username, string Password);
+
 /// <summary>
-/// Data Transfer Object (DTO) for user login.
+/// Objeto de transferencia de datos (DTO) para el inicio de sesión de usuarios.
 /// </summary>
-/// <param name="Username">The user's username.</param>
-/// <param name="Password">The user's password.</param>
+/// <param name="Username">Nombre de usuario registrado en el sistema.</param>
+/// <param name="Password">Contraseña del usuario para autenticación.</param>
 public record UserLoginDto(string Username, string Password);

@@ -3,21 +3,30 @@ using SecureInventory.Core.Entities;
 namespace SecureInventory.Core.Interfaces;
 
 /// <summary>
-/// Defines the contract for product data access operations.
+/// Define el contrato para las operaciones de acceso a datos de productos.
+/// Implementa el patrón Repository para abstraer la lógica de persistencia y caché.
 /// </summary>
 public interface IProductRepository
 {
     /// <summary>
-    /// Retrieves a product by its unique identifier asynchronously.
+    /// Obtiene un producto por su identificador único de forma asíncrona.
+    /// La implementación debe seguir el patrón Cache-Aside: primero consulta Redis, 
+    /// si no existe, consulta SQL Server y almacena en caché para futuras consultas.
     /// </summary>
-    /// <param name="id">The unique identifier of the product.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the product if found; otherwise, null.</returns>
+    /// <param name="id">Identificador único del producto a recuperar.</param>
+    /// <returns>
+    /// Una tarea que representa la operación asíncrona. 
+    /// El resultado de la tarea contiene el producto si se encuentra; de lo contrario, null.
+    /// </returns>
     Task<Product?> GetByIdAsync(int id);
 
     /// <summary>
-    /// Creates a new product asynchronously.
+    /// Crea un nuevo producto en la base de datos de forma asíncrona.
     /// </summary>
-    /// <param name="product">The product to create.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the ID of the newly created product.</returns>
+    /// <param name="product">Producto a crear. Debe contener Name, Price y Stock. El Id será generado automáticamente.</param>
+    /// <returns>
+    /// Una tarea que representa la operación asíncrona. 
+    /// El resultado de la tarea contiene el ID del producto recién creado.
+    /// </returns>
     Task<int> CreateAsync(Product product);
 }

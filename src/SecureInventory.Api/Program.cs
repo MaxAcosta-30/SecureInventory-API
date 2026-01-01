@@ -1,17 +1,19 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
-using Dapper;
 using StackExchange.Redis;
 using SecureInventory.Core.Interfaces;
 using SecureInventory.Infrastructure.Repositories;
-// USINGS DE SEGURIDAD
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+/// <summary>
+/// Punto de entrada principal de la aplicación SecureInventory API.
+/// Configura servicios, autenticación JWT, conexiones a SQL Server y Redis, e inicia la aplicación web.
+/// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CONFIGURACIÓN BASE DE DATOS ---
+// --- 1. CONFIGURACIÓN BASE DE DATOS SQL SERVER ---
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
 var dbPort = Environment.GetEnvironmentVariable("SQL_PORT") ?? "1440";
 var dbUser = "sa";
@@ -20,12 +22,12 @@ var connectionString = $"Server={dbServer},{dbPort};Database=SecureInventoryDB;U
 
 builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(connectionString));
 
-// --- 2. CONFIGURACIÓN REDIS ---
+// --- 2. CONFIGURACIÓN REDIS (CACHE-ASIDE PATTERN) ---
 var redisPort = Environment.GetEnvironmentVariable("REDIS_PORT") ?? "6379";
 var redisConn = $"localhost:{redisPort},abortConnect=false";
 builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConn));
 
-// --- 3. INYECCIÓN DE DEPENDENCIAS ---
+// --- 3. INYECCIÓN DE DEPENDENCIAS (REPOSITORIOS) ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
@@ -47,7 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// --- 5. API ---
+// --- 5. CONFIGURACIÓN DE API ---
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(); 
 
