@@ -1,71 +1,103 @@
 using System.Data;
+using System.Reflection;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.SqlClient;
-using StackExchange.Redis;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SecureInventory.Core.Interfaces;
 using SecureInventory.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using StackExchange.Redis;
 
-/// <summary>
-/// Punto de entrada principal de la aplicación SecureInventory API.
-/// Configura servicios, autenticación JWT, conexiones a SQL Server y Redis, e inicia la aplicación web.
-/// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CONFIGURACIÓN BASE DE DATOS SQL SERVER ---
-var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
-var dbPort = Environment.GetEnvironmentVariable("SQL_PORT") ?? "1440";
-var dbUser = "sa";
-var dbPass = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD"); 
-var connectionString = $"Server={dbServer},{dbPort};Database=SecureInventoryDB;User Id={dbUser};Password={dbPass};TrustServerCertificate=True;";
+// 1. Agregar Servicios al Contenedor
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(connectionString));
+// --- CONFIGURACIÓN SWAGGER (Swashbuckle) ---
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "SecureInventory API", Version = "v1" });
 
-// --- 2. CONFIGURACIÓN REDIS (CACHE-ASIDE PATTERN) ---
-var redisPort = Environment.GetEnvironmentVariable("REDIS_PORT") ?? "6379";
-var redisConn = $"localhost:{redisPort},abortConnect=false";
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConn));
-
-// --- 3. INYECCIÓN DE DEPENDENCIAS (REPOSITORIOS) ---
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-
-// --- 4. CONFIGURACIÓN DE SEGURIDAD JWT (CRÍTICO) ---
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "EstaEsUnaClaveSuperSecretaYDebeTenerAlMenos32Caracteres!";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    // Configuración para el botón "Authorize" con JWT
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = "SecureInventoryApi",
-            ValidAudience = "SecureInventoryClient",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
     });
 
-// --- 5. CONFIGURACIÓN DE API ---
-builder.Services.AddControllers();
-builder.Services.AddOpenApi(); 
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
 
+    // Incluir comentarios XML para documentación
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
+
+// 2. Base de Datos (SQL Server)
+builder.Services.AddScoped<IDbConnection>(sp =>
+    new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=localhost,1440;Database=SecureInventoryDB;User Id=sa;Password=C0nTras3ña99!;TrustServerCertificate=True;"));
+
+// 3. Cache (Redis)
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379"));
+
+// 4. Inyección de Dependencias (Repositorios)
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+// builder.Services.AddScoped<IUserRepository, UserRepository>(); // Asegúrate de tener este repo si usas AuthController
+
+// 5. Configuración JWT
+var key = Encoding.ASCII.GetBytes("EstaEsUnaClaveSecretaSuperSeguraParaJWT123!"); // Misma clave que en AuthController
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
+// --- CONSTRUIR LA APP (Solo una vez) ---
 var app = builder.Build();
 
+// 6. Middleware Pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-// El orden importa aquí:
-app.UseAuthentication(); // 1. ¿Quién eres?
-app.UseAuthorization();  // 2. ¿Tienes permiso?
+app.UseAuthentication(); // 👈 Importante: Quién eres
+app.UseAuthorization();  // 👈 Importante: Qué puedes hacer
 
-app.MapControllers(); 
+app.MapControllers();
 
 app.Run();
