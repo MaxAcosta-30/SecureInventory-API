@@ -9,43 +9,18 @@ namespace SecureInventory.Infrastructure.Repositories;
 
 /// <summary>
 /// Implementación del repositorio de productos utilizando Dapper para SQL Server y Redis para caché.
-/// Implementa el patrón Cache-Aside para optimizar las consultas de lectura.
 /// </summary>
 public class ProductRepository : IProductRepository
 {
     private readonly IDbConnection _dbConnection;
     private readonly IDatabase _redisDb;
 
-    /// <summary>
-    /// Inicializa una nueva instancia del repositorio de productos.
-    /// </summary>
-    /// <param name="dbConnection">Conexión a la base de datos SQL Server inyectada por dependencias.</param>
-    /// <param name="redis">Conexión multiplexor a Redis para operaciones de caché.</param>
     public ProductRepository(IDbConnection dbConnection, IConnectionMultiplexer redis)
     {
         _dbConnection = dbConnection;
         _redisDb = redis.GetDatabase();
     }
 
-    /// <summary>
-    /// Obtiene un producto por su identificador único de forma asíncrona, utilizando el patrón Cache-Aside.
-    /// 
-    /// Flujo Cache-Aside:
-    /// 1. Consulta Redis con la clave "product:{id}"
-    /// 2. Si existe (CACHE HIT): Deserializa y retorna el producto desde Redis
-    /// 3. Si no existe (CACHE MISS): Consulta SQL Server, almacena en Redis con TTL de 10 minutos y retorna el producto
-    /// 
-    /// Esto mejora significativamente el rendimiento al reducir las consultas a la base de datos.
-    /// </summary>
-    /// <param name="id">Identificador único del producto a recuperar.</param>
-    /// <returns>
-    /// Una tarea que representa la operación asíncrona. 
-    /// El resultado contiene el producto si se encuentra; de lo contrario, null.
-    /// </returns>
-    /// <remarks>
-    /// TTL (Time To Live) del caché: 10 minutos. Después de este tiempo, el producto se elimina
-    /// automáticamente de Redis y se debe consultar nuevamente desde SQL Server.
-    /// </remarks>
     public async Task<Product?> GetByIdAsync(int id)
     {
         string cacheKey = $"product:{id}";
@@ -70,19 +45,6 @@ public class ProductRepository : IProductRepository
         return product;
     }
 
-    /// <summary>
-    /// Crea un nuevo producto en la base de datos de forma asíncrona.
-    /// Inserta el producto y retorna el ID generado automáticamente por SQL Server (IDENTITY).
-    /// </summary>
-    /// <param name="product">Producto a crear. Debe contener Name, Price y Stock. El Id será generado automáticamente.</param>
-    /// <returns>
-    /// Una tarea que representa la operación asíncrona. 
-    /// El resultado contiene el ID del producto recién creado.
-    /// </returns>
-    /// <remarks>
-    /// NOTA: Este método no actualiza el caché de Redis. Si se requiere consistencia inmediata,
-    /// se podría implementar invalidación de caché después de la inserción.
-    /// </remarks>
     public async Task<int> CreateAsync(Product product)
     {
         var sql = @"
@@ -91,5 +53,26 @@ public class ProductRepository : IProductRepository
             SELECT CAST(SCOPE_IDENTITY() as int);";
 
         return await _dbConnection.ExecuteScalarAsync<int>(sql, product);
+    }
+
+    // ✅ ESTE ES EL MÉTODO CORRECTO PARA EL REPOSITORIO
+    // Solo lógica de datos: SQL + Redis Delete
+    public async Task UpdateAsync(Product product)
+    {
+        // 1. Actualizar en SQL Server
+        var sql = @"
+            UPDATE Products 
+            SET Name = @Name, 
+                Price = @Price, 
+                Stock = @Stock 
+            WHERE Id = @Id";
+
+        await _dbConnection.ExecuteAsync(sql, product);
+
+        // 2. INVALIDAR CACHÉ (Smart Cache)
+        string cacheKey = $"product:{product.Id}";
+        await _redisDb.KeyDeleteAsync(cacheKey);
+
+        Console.WriteLine($"♻️ CACHE INVALIDADO: Se eliminó '{cacheKey}' de Redis tras la actualización.");
     }
 }

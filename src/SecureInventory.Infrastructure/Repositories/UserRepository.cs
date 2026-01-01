@@ -56,7 +56,7 @@ public class UserRepository : IUserRepository
             INSERT INTO Users (Username, PasswordHash, Role) 
             VALUES (@Username, @PasswordHash, @Role);
             SELECT CAST(SCOPE_IDENTITY() as int);";
-            
+
         return await _dbConnection.ExecuteScalarAsync<int>(sql, user);
     }
 }

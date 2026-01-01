@@ -61,7 +61,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
 // 4. Inyección de Dependencias (Repositorios)
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-// builder.Services.AddScoped<IUserRepository, UserRepository>(); // Asegúrate de tener este repo si usas AuthController
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // 5. Configuración JWT
 var key = Encoding.ASCII.GetBytes("EstaEsUnaClaveSecretaSuperSeguraParaJWT123!"); // Misma clave que en AuthController

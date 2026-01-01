@@ -48,13 +48,13 @@ public class AuthController : ControllerBase
 
         string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var newUser = new User 
-        { 
-            Username = request.Username, 
+        var newUser = new User
+        {
+            Username = request.Username,
             PasswordHash = passwordHash,
-            Role = "User" 
+            Role = "User"
         };
-        
+
         await _userRepository.CreateUserAsync(newUser);
         return Ok("Usuario registrado exitosamente.");
     }
@@ -72,7 +72,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(UserLoginDto request)
     {
         var user = await _userRepository.GetByUsernameAsync(request.Username);
-        
+
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized("Credenciales inválidas.");
