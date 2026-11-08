@@ -1,20 +1,22 @@
 # SecureInventory API
 
+<p align="center"><img src="docs/portada.svg" alt="SecureInventory: inventario con caché Redis cache-aside y Dapper" width="100%"></p>
+
 API REST de gestión de inventario segura construida con .NET 10, Dapper (SQL Server), Redis (patrón Cache-Aside) y autenticación JWT.
 
-## 📋 Descripción
+## Descripción
 
 SecureInventory es una API robusta diseñada para gestionar productos de inventario con un enfoque en seguridad, rendimiento y escalabilidad. Implementa autenticación basada en tokens JWT, almacenamiento de datos en SQL Server mediante Dapper, y un sistema de caché distribuido con Redis siguiendo el patrón Cache-Aside para optimizar el rendimiento de las consultas.
 
 ### Características Principales
 
-- 🔐 **Autenticación JWT**: Sistema de autenticación seguro basado en tokens JWT
-- 💾 **SQL Server con Dapper**: Acceso a datos eficiente y seguro mediante micro-ORM Dapper
-- ⚡ **Redis Cache-Aside**: Sistema de caché distribuido para optimizar lecturas frecuentes
-- 🏗️ **Arquitectura en Capas**: Separación clara de responsabilidades (Core/Infrastructure/API)
-- 🐳 **Docker Compose**: Infraestructura containerizada lista para desarrollo
+- **Autenticación JWT**: Sistema de autenticación seguro basado en tokens JWT
+- **SQL Server con Dapper**: Acceso a datos eficiente y seguro mediante micro-ORM Dapper
+- **Redis Cache-Aside**: Sistema de caché distribuido para optimizar lecturas frecuentes
+- **Arquitectura en Capas**: Separación clara de responsabilidades (Core/Infrastructure/API)
+- **Docker Compose**: Infraestructura containerizada lista para desarrollo
 
-## 🏗️ Arquitectura de Capas
+## Arquitectura de Capas
 
 El proyecto sigue una arquitectura en capas que separa las responsabilidades:
 
@@ -56,7 +58,7 @@ SecureInventory/
   - `Program.cs`: Configuración de servicios, JWT, middleware
 - **Dependencias**: `SecureInventory.Core`, `SecureInventory.Infrastructure`, ASP.NET Core, JWT Bearer
 
-## 🚀 Requisitos de Infraestructura
+## Requisitos de Infraestructura
 
 ### Prerequisitos
 
@@ -76,7 +78,7 @@ La aplicación utiliza Docker Compose para orquestar los siguientes servicios:
 2. **Redis Alpine**: Caché en memoria
    - Puerto: `6379` (configurable vía variable de entorno `REDIS_PORT`)
 
-## 📦 Guía de Inicio Rápido
+## Guía de Inicio Rápido
 
 ### 1. Configuración del Entorno
 
@@ -150,7 +152,7 @@ Una vez iniciada la API, puedes acceder a la documentación OpenAPI en:
 - Swagger UI: `https://localhost:5001/swagger` (si está habilitado)
 - OpenAPI JSON: `https://localhost:5001/openapi/v1.json`
 
-## 🔐 Estrategia de Caché con Redis (Patrón Cache-Aside)
+## Estrategia de Caché con Redis (Patrón Cache-Aside)
 
 El sistema implementa el patrón **Cache-Aside** (también conocido como Lazy Loading) para optimizar las consultas de productos:
 
@@ -183,16 +185,16 @@ Cliente → API → ProductRepository.GetByIdAsync(id)
 
 ### Ventajas del Patrón Cache-Aside
 
-✅ **Rendimiento**: Reduce significativamente la carga en SQL Server para consultas frecuentes  
-✅ **Resiliencia**: Si Redis falla, la aplicación sigue funcionando  
-✅ **Simplicidad**: Lógica de caché explícita y fácil de entender  
-✅ **Flexibilidad**: Permite invalidación manual del caché si es necesario
+**Rendimiento**: Reduce significativamente la carga en SQL Server para consultas frecuentes  
+**Resiliencia**: Si Redis falla, la aplicación sigue funcionando  
+**Simplicidad**: Lógica de caché explícita y fácil de entender  
+**Flexibilidad**: Permite invalidación manual del caché si es necesario
 
 ### Consideraciones
 
-⚠️ **Consistencia**: Cuando se crea/actualiza un producto, el caché no se invalida automáticamente. Los cambios se reflejarán después del TTL o se requiere invalidación manual.
+**Consistencia**: Cuando se crea/actualiza un producto, el caché no se invalida automáticamente. Los cambios se reflejarán después del TTL o se requiere invalidación manual.
 
-## 📡 Endpoints y Ejemplos con cURL
+## Endpoints y Ejemplos con cURL
 
 ### 1. Registro de Usuario
 
@@ -343,7 +345,7 @@ curl -X GET "https://localhost:5001/api/products/1" \
   -H "Accept: application/json"
 ```
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 - **.NET 10**: Framework de desarrollo
 - **ASP.NET Core**: Framework web
@@ -355,7 +357,7 @@ curl -X GET "https://localhost:5001/api/products/1" \
 - **Redis Alpine**: Caché en memoria
 - **Docker Compose**: Orquestación de contenedores
 
-## 📝 Estructura de Base de Datos
+## Estructura de Base de Datos
 
 ### Tabla: Users
 
@@ -375,7 +377,7 @@ curl -X GET "https://localhost:5001/api/products/1" \
 | Price   | DECIMAL(18,2) | Precio unitario (≥ 0)                |
 | Stock   | INT           | Cantidad en inventario (≥ 0)         |
 
-## 🔒 Seguridad
+## Seguridad
 
 - **Hashing de Contraseñas**: BCrypt con salt automático
 - **JWT**: Tokens firmados con HMAC-SHA256, expiración de 1 hora
@@ -383,11 +385,11 @@ curl -X GET "https://localhost:5001/api/products/1" \
 - **HTTPS**: Redirección automática a HTTPS en producción
 - **Validación de Datos**: Validación a nivel de base de datos y aplicación
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
-## 👨‍💻 Autor
+## ‍Autor
 
 Desarrollado como proyecto de ejemplo de arquitectura .NET con caché distribuido.
 
